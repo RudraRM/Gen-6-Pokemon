@@ -132,6 +132,9 @@ export function Landing({ onLaunch }: { onLaunch: () => void }) {
 
         <div className="lg:col-start-1 lg:row-start-2 xl:col-start-2 xl:row-start-1">
           <HeroShowpiece />
+          <p className="mt-4 text-center text-sm font-semibold text-ink">
+            Ash Greninja
+          </p>
         </div>
 
         {/* floating showcase */}
