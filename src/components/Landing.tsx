@@ -8,6 +8,7 @@ import {
   dexNumber,
   titleCase,
 } from "../lib/pokemonTypes";
+import { HeroShowpiece } from "./HeroShowpiece";
 import { PokemonArt, TypePill } from "./primitives";
 
 const byId = (id: number) => GEN6_POKEMON.find((p) => p.id === id)!;
@@ -64,8 +65,14 @@ export function Landing({ onLaunch }: { onLaunch: () => void }) {
       </header>
 
       {/* ---------------------------- hero ---------------------------- */}
-      <section className="relative mx-auto grid max-w-[1400px] items-center gap-12 px-4 pb-20 pt-14 sm:px-8 lg:grid-cols-[minmax(0,1fr)_460px] lg:gap-8 lg:pt-20">
+      {/*
+        Three zones, explicitly placed: copy, the 3D showpiece, then the card
+        column. One column stacked on mobile; at lg the showpiece tucks under
+        the copy; at xl each zone gets its own column.
+      */}
+      <section className="relative mx-auto grid max-w-[1400px] items-center gap-10 px-4 pb-20 pt-14 sm:px-8 lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-8 lg:pt-20 xl:grid-cols-[minmax(0,1fr)_320px_440px]">
         <motion.div
+          className="lg:col-start-1 lg:row-start-1"
           initial={reduce ? false : { opacity: 0, y: 26 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
@@ -123,8 +130,12 @@ export function Landing({ onLaunch }: { onLaunch: () => void }) {
           </div>
         </motion.div>
 
+        <div className="lg:col-start-1 lg:row-start-2 xl:col-start-2 xl:row-start-1">
+          <HeroShowpiece />
+        </div>
+
         {/* floating showcase */}
-        <div className="relative h-[500px] lg:h-[520px]">
+        <div className="relative h-[500px] lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:h-[520px] xl:col-start-3 xl:row-span-1">
           {SHOWCASE.map((p, i) => {
             const typeNames = p.types.map((t) => t.type.name);
             const color = TYPE_COLORS[typeNames[0]].base;
