@@ -15,9 +15,14 @@ import { TYPE_COLORS } from "../lib/pokemonTypes";
  * pointer travels, so the artwork reads as a lit figure standing off the page
  * rather than a flat cutout.
  *
- * Swap `public/hero-greninja.png` to change the artwork; nothing else needs to
- * move.
+ * Point ART at a different file in `public/` to change the artwork; nothing
+ * else needs to move. It must be a transparent PNG, since the sheen below is
+ * masked with the image's own alpha channel.
  */
+const ART = "/189-1893657_ash-greninja-greninja-ash.png-removebg-preview.png";
+const ART_WIDTH = 403;
+const ART_HEIGHT = 619;
+
 const WATER = TYPE_COLORS.water.base;
 const DARK = TYPE_COLORS.dark.base;
 
@@ -65,7 +70,10 @@ export function HeroShowpiece() {
       ref={frame}
       onPointerMove={track}
       onPointerLeave={release}
-      className="relative mx-auto flex h-[360px] w-full max-w-[340px] items-center justify-center sm:h-[420px] lg:h-[440px]"
+      // Sized to the artwork's portrait ratio so the figure fills the frame.
+      // At lg the figure sits under the copy rather than in its own column, so
+      // it steps down a size there and comes back up at xl.
+      className="relative mx-auto flex h-[390px] w-full max-w-[300px] items-center justify-center sm:h-[430px] lg:h-[380px] lg:max-w-[250px] xl:h-[470px] xl:max-w-[300px]"
       style={{ perspective: "1100px" }}
     >
       {/* aura, furthest back, drifts against the tilt to open up the depth */}
@@ -85,7 +93,7 @@ export function HeroShowpiece() {
       {/* thin ring, reads as the lab platform the figure stands on */}
       <motion.div
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-10 h-[168px] w-[240px] rounded-[50%] border sm:w-[280px]"
+        className="pointer-events-none absolute bottom-4 h-[150px] w-[220px] rounded-[50%] border sm:w-[260px]"
         style={{
           rotateX: 68,
           borderColor: `color-mix(in srgb, ${WATER} 34%, transparent)`,
@@ -131,10 +139,10 @@ export function HeroShowpiece() {
           ) : (
             <>
               <img
-                src="/hero-greninja.png"
-                alt="Greninja, the Ninja Pokémon, poised mid-stance"
-                width={475}
-                height={475}
+                src={ART}
+                alt="Ash-Greninja, the Ninja Pokémon, poised mid-stance"
+                width={ART_WIDTH}
+                height={ART_HEIGHT}
                 fetchPriority="high"
                 decoding="async"
                 onError={() => setFailed(true)}
@@ -152,8 +160,8 @@ export function HeroShowpiece() {
                 style={{
                   background: reduce ? "none" : sheen,
                   transform: "translateZ(60px)",
-                  maskImage: "url(/hero-greninja.png)",
-                  WebkitMaskImage: "url(/hero-greninja.png)",
+                  maskImage: `url("${ART}")`,
+                  WebkitMaskImage: `url("${ART}")`,
                   maskSize: "contain",
                   WebkitMaskSize: "contain",
                   maskRepeat: "no-repeat",
