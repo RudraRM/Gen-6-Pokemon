@@ -1,9 +1,10 @@
 import { useCallback, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, GitBranch, Grid2x2, Shield } from "lucide-react";
+import { ArrowLeft, GitBranch, Grid2x2, Shield, Sparkles } from "lucide-react";
 import type { Pokemon } from "../api/localPokeApi";
 import { AllPokemonTab } from "./AllPokemonTab";
 import { EvolutionTab } from "./EvolutionTab";
+import { MegaEvolutionTab } from "./MegaEvolutionTab";
 import { PokemonDetailModal } from "./PokemonDetailModal";
 import { TypeMatchupTab } from "./TypeMatchupTab";
 
@@ -11,6 +12,7 @@ const TABS = [
   { id: "all", label: "All Pokemon", icon: Grid2x2 },
   { id: "evolution", label: "Evolution Trees", icon: GitBranch },
   { id: "types", label: "Type Matchup Chart", icon: Shield },
+  { id: "mega", label: "Mega Evolution", icon: Sparkles },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -109,6 +111,7 @@ export function Dashboard({ onExit }: { onExit: () => void }) {
             {tab === "all" && <AllPokemonTab onSelect={handleSelect} />}
             {tab === "evolution" && <EvolutionTab onSelect={handleSelect} />}
             {tab === "types" && <TypeMatchupTab onSelect={handleSelect} />}
+            {tab === "mega" && <MegaEvolutionTab />}
           </motion.div>
         </AnimatePresence>
       </main>
