@@ -1,30 +1,41 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Radio, Sparkles, X } from "lucide-react";
+import { ArrowRight, BookOpen, Layers, Sparkles, X } from "lucide-react";
 import {
+  MEGA_CAPABLE_IDS,
+  MEGA_DEBUT_GROUPS,
   MEGA_FORM_COUNT,
   fetchMegaEvolutions,
-  type MegaDebut,
   type MegaEvolution,
 } from "../api/pokeApi";
+import { pokemonById, type Pokemon } from "../api/localPokeApi";
 import { useAsync } from "../hooks/useAsync";
 import { STAT_LABELS, TYPE_COLORS, dexNumber, titleCase } from "../lib/pokemonTypes";
 import { ErrorState, GridSkeleton, PokemonArt, TypePill } from "./primitives";
 
-/** Mega Mewtwo Y's 194 Special Attack is the Gen 6 peak; round up for headroom. */
-const STAT_CEILING = 200;
+/** Mega Mewtwo Y's 194 Special Attack is the peak; round up for headroom. */
+const STAT_CEILING = 220;
 
 const FILTERS = [
-  { id: "all", label: "All 48" },
-  { id: "X / Y", label: "X / Y" },
-  { id: "Omega Ruby / Alpha Sapphire", label: "Omega Ruby / Alpha Sapphire" },
-] as const;
+  { id: "all", label: `All ${MEGA_FORM_COUNT}` },
+  ...MEGA_DEBUT_GROUPS.map((group) => ({
+    id: group.label,
+    label: `${group.label} (${group.count})`,
+  })),
+];
 
-type FilterId = (typeof FILTERS)[number]["id"];
+type FilterId = string;
+
+/** Charizard and Mewtwo each back two forms, so this is not MEGA_FORM_COUNT. */
+const MEGA_CAPABLE_COUNT = MEGA_CAPABLE_IDS.size;
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-export function MegaEvolutionTab() {
+export function MegaEvolutionTab({
+  onSelect,
+}: {
+  onSelect: (p: Pokemon) => void;
+}) {
   const [filter, setFilter] = useState<FilterId>("all");
   const [selected, setSelected] = useState<MegaEvolution | null>(null);
   const reduce = useReducedMotion();
@@ -36,9 +47,7 @@ export function MegaEvolutionTab() {
 
   const megas = useMemo(
     () =>
-      (data ?? []).filter(
-        (m) => filter === "all" || m.debut === (filter as MegaDebut),
-      ),
+      (data ?? []).filter((m) => filter === "all" || m.debut === filter),
     [data, filter],
   );
 
@@ -50,9 +59,9 @@ export function MegaEvolutionTab() {
             Mega Evolution
           </h2>
           <p className="mt-1 max-w-[62ch] text-sm text-ink-dim">
-            Every one of the {MEGA_FORM_COUNT} Mega Evolutions introduced in
-            Generation 6, pulled live from PokeAPI. Open one to see what the
-            stone does to its typing and its stat spread.
+            All {MEGA_FORM_COUNT} Mega Evolutions belonging to a Pokemon in this
+            dex, read straight off the PokeAPI form data. Open one to see what
+            the stone does to its typing and its stat spread.
           </p>
         </div>
 
@@ -62,15 +71,8 @@ export function MegaEvolutionTab() {
           transition={{ duration: 0.4, ease: EASE }}
           className="inline-flex shrink-0 items-center gap-2 self-start rounded-full border border-accent/35 bg-accent/10 px-3.5 py-1.5 text-xs font-semibold text-accent"
         >
-          <motion.span
-            aria-hidden="true"
-            animate={reduce ? undefined : { opacity: [1, 0.35, 1] }}
-            transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-            className="flex"
-          >
-            <Radio size={14} strokeWidth={2} />
-          </motion.span>
-          Live from PokeAPI
+          <Layers size={14} strokeWidth={2} aria-hidden="true" />
+          {MEGA_CAPABLE_COUNT} Pokemon can Mega Evolve
         </motion.span>
       </div>
 
@@ -125,7 +127,7 @@ export function MegaEvolutionTab() {
                   key={mega.slug}
                   mega={mega}
                   index={i}
-                  onSelect={setSelected}
+                  onOpen={setSelected}
                 />
               ))}
             </AnimatePresence>
@@ -133,7 +135,14 @@ export function MegaEvolutionTab() {
         )}
       </div>
 
-      <MegaDetail mega={selected} onClose={() => setSelected(null)} />
+      <MegaDetail
+        mega={selected}
+        onClose={() => setSelected(null)}
+        onOpenDexEntry={(p) => {
+          setSelected(null);
+          onSelect(p);
+        }}
+      />
     </div>
   );
 }
@@ -143,11 +152,11 @@ export function MegaEvolutionTab() {
 function MegaCard({
   mega,
   index,
-  onSelect,
+  onOpen,
 }: {
   mega: MegaEvolution;
   index: number;
-  onSelect: (mega: MegaEvolution) => void;
+  onOpen: (mega: MegaEvolution) => void;
 }) {
   const reduce = useReducedMotion();
   const primary = TYPE_COLORS[mega.types[0]].base;
@@ -158,7 +167,7 @@ function MegaCard({
     <motion.button
       type="button"
       layout
-      onClick={() => onSelect(mega)}
+      onClick={() => onOpen(mega)}
       initial={reduce ? false : { opacity: 0, y: 22 }}
       animate={{ opacity: 1, y: 0 }}
       exit={reduce ? undefined : { opacity: 0, scale: 0.96 }}
@@ -217,7 +226,9 @@ function MegaCard({
         <h3 className="mt-1 text-lg font-semibold tracking-tight text-ink">
           {mega.displayName}
         </h3>
-        <p className="mt-0.5 text-xs text-ink-dim">{mega.ability}</p>
+        <p className="mt-0.5 text-xs text-ink-dim">
+          {mega.ability || "Ability not recorded"}
+        </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
           {mega.types.map((t) => (
@@ -234,9 +245,11 @@ function MegaCard({
 function MegaDetail({
   mega,
   onClose,
+  onOpenDexEntry,
 }: {
   mega: MegaEvolution | null;
   onClose: () => void;
+  onOpenDexEntry: (p: Pokemon) => void;
 }) {
   const reduce = useReducedMotion();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -275,6 +288,7 @@ function MegaDetail({
           <MegaDetailBody
             mega={mega}
             onClose={onClose}
+            onOpenDexEntry={onOpenDexEntry}
             closeRef={closeRef}
             reduce={!!reduce}
           />
@@ -287,16 +301,19 @@ function MegaDetail({
 function MegaDetailBody({
   mega,
   onClose,
+  onOpenDexEntry,
   closeRef,
   reduce,
 }: {
   mega: MegaEvolution;
   onClose: () => void;
+  onOpenDexEntry: (p: Pokemon) => void;
   closeRef: React.RefObject<HTMLButtonElement>;
   reduce: boolean;
 }) {
   const primary = TYPE_COLORS[mega.types[0]].base;
   const gainedTypes = mega.types.filter((t) => !mega.baseTypes.includes(t));
+  const dexEntry = pokemonById(mega.speciesId);
 
   return (
     <motion.div
@@ -338,8 +355,18 @@ function MegaDetailBody({
         </h2>
         <p className="mt-1 flex items-center gap-1.5 text-sm text-ink-dim">
           <Sparkles size={14} strokeWidth={1.75} className="text-accent" />
-          {mega.ability}
+          {mega.ability || "Ability not recorded"}
         </p>
+
+        {dexEntry && (
+          <button
+            onClick={() => onOpenDexEntry(dexEntry)}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-line bg-surface/70 px-3.5 py-1.5 text-xs font-semibold text-ink-dim transition hover:text-ink active:scale-[0.98]"
+          >
+            <BookOpen size={13} strokeWidth={1.75} aria-hidden="true" />
+            Open the {titleCase(dexEntry.name)} dex entry
+          </button>
+        )}
       </header>
 
       {/* base form -> mega form */}

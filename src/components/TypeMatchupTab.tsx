@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, ShieldCheck, ShieldOff, Sparkles } from "lucide-react";
 import {
-  fetchGen6Pokemon,
+  fetchAllPokemon,
   type Pokemon,
   type PokemonListResponse,
   type TypeName,
@@ -19,15 +19,19 @@ import {
 } from "../lib/pokemonTypes";
 import { PokemonArt, TypePill } from "./primitives";
 
+/** Water alone runs to well over a hundred entries, so the roster is capped. */
+const ROSTER_PAGE = 24;
+
 export function TypeMatchupTab({
   onSelect,
 }: {
   onSelect: (p: Pokemon) => void;
 }) {
   const [selected, setSelected] = useState<TypeName>("fairy");
+  const [visible, setVisible] = useState(ROSTER_PAGE);
   const reduce = useReducedMotion();
   const { data, loading, error, reload } = useAsync<PokemonListResponse>(
-    () => fetchGen6Pokemon(),
+    () => fetchAllPokemon(),
     [],
   );
 
@@ -38,6 +42,8 @@ export function TypeMatchupTab({
       ),
     [data, selected],
   );
+
+  useEffect(() => setVisible(ROSTER_PAGE), [selected]);
 
   const profile = useMemo(() => defensiveProfile([selected]), [selected]);
   const offense = useMemo(() => {
@@ -61,8 +67,8 @@ export function TypeMatchupTab({
         Type matchups
       </h2>
       <p className="mt-1 max-w-[62ch] text-sm text-ink-dim">
-        Pick a type to see which Kalos Pokemon carry it, what it beats, and what
-        beats it.
+        Pick a type to see which Pokemon carry it, what it beats, and what beats
+        it.
       </p>
 
       {/* the matrix */}
@@ -106,7 +112,7 @@ export function TypeMatchupTab({
         <section>
           <div className="flex items-baseline gap-3">
             <h3 className="text-lg font-semibold tracking-tight text-ink">
-              {titleCase(selected)} types in Kalos
+              {titleCase(selected)} types in the dex
             </h3>
             {!loading && (
               <span className="font-mono text-xs text-ink-faint">
@@ -152,13 +158,13 @@ export function TypeMatchupTab({
                   No {selected} type in this dex
                 </p>
                 <p className="mt-1 text-xs text-ink-dim">
-                  Kalos left this one to other regions.
+                  No Pokemon in Generations 1-6 carries it.
                 </p>
               </div>
             ) : (
               <AnimatePresence mode="popLayout">
                 <motion.ul layout className="grid gap-2.5">
-                  {roster.map((p, i) => (
+                  {roster.slice(0, visible).map((p, i) => (
                     <motion.li
                       key={p.id}
                       layout
@@ -204,6 +210,17 @@ export function TypeMatchupTab({
                   ))}
                 </motion.ul>
               </AnimatePresence>
+            )}
+
+            {!loading && !error && visible < roster.length && (
+              <button
+                onClick={() =>
+                  setVisible((n) => Math.min(n + ROSTER_PAGE, roster.length))
+                }
+                className="mt-4 w-full rounded-full border border-line bg-surface py-2 text-sm text-ink-dim transition hover:text-ink"
+              >
+                Show more ({roster.length - visible} left)
+              </button>
             )}
           </div>
         </section>

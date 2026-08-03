@@ -171,7 +171,7 @@ export function EmptyState({ query }: { query: string }) {
     >
       <SearchX className="mx-auto text-ink-faint" size={30} strokeWidth={1.5} />
       <p className="mt-4 text-base font-semibold text-ink">
-        No Kalos entry matches "{query}"
+        No dex entry matches "{query}"
       </p>
       <p className="mx-auto mt-2 max-w-[44ch] text-sm text-ink-dim">
         Search by name, National Dex number, or a type such as fairy or steel.
