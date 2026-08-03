@@ -1,10 +1,9 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Lock } from "lucide-react";
 import {
-  CHAIN_SPECIES_EXTRAS,
-  GEN6_POKEMON,
+  GENERATIONS,
   fetchEvolutionChains,
+  pokemonById,
   type EvolutionChain,
   type EvolutionLink,
   type Pokemon,
@@ -30,27 +29,19 @@ interface Species {
   name: string;
   types: TypeName[];
   artwork: string;
-  full?: Pokemon;
+  full: Pokemon;
 }
 
+/** Every node in a chain is a dex entry now, so every node opens. */
 function resolveSpecies(id: number): Species | null {
-  const full = GEN6_POKEMON.find((p) => p.id === id);
-  if (full) {
-    return {
-      id,
-      name: full.name,
-      types: full.types.map((t) => t.type.name),
-      artwork: full.sprites.other["official-artwork"].front_default,
-      full,
-    };
-  }
-  const extra = CHAIN_SPECIES_EXTRAS[id];
-  if (!extra) return null;
+  const full = pokemonById(id);
+  if (!full) return null;
   return {
     id,
-    name: extra.name,
-    types: extra.types,
-    artwork: extra.sprites.other["official-artwork"].front_default,
+    name: full.name,
+    types: full.types.map((t) => t.type.name),
+    artwork: full.sprites.other["official-artwork"].front_default,
+    full,
   };
 }
 
@@ -68,7 +59,6 @@ function ChainNode({
   if (!species) return null;
 
   const primary = TYPE_COLORS[species.types[0]].base;
-  const openable = Boolean(species.full);
 
   return (
     <motion.div
@@ -80,21 +70,16 @@ function ChainNode({
     >
       <button
         type="button"
-        disabled={!openable}
-        onClick={() => species.full && onSelect(species.full)}
-        aria-label={
-          openable
-            ? `Open the Pokedex entry for ${titleCase(species.name)}`
-            : `${titleCase(species.name)} is outside the Kalos dex`
-        }
-        className="group relative grid h-[124px] w-[124px] place-items-center rounded-full border border-line bg-surface transition duration-300 enabled:hover:-translate-y-1 enabled:active:scale-[0.97] disabled:cursor-default"
+        onClick={() => onSelect(species.full)}
+        aria-label={`Open the Pokedex entry for ${titleCase(species.name)}`}
+        className="group relative grid h-[124px] w-[124px] place-items-center rounded-full border border-line bg-surface transition duration-300 hover:-translate-y-1 active:scale-[0.97]"
         style={{
           background: `radial-gradient(circle at 50% 58%, color-mix(in srgb, ${primary} 16%, transparent), var(--color-surface) 72%)`,
         }}
       >
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-full opacity-0 transition-opacity duration-300 group-enabled:group-hover:opacity-100"
+          className="pointer-events-none absolute inset-0 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100"
           style={{
             boxShadow: `0 0 0 1px color-mix(in srgb, ${primary} 60%, transparent), 0 16px 40px color-mix(in srgb, ${primary} 22%, transparent)`,
           }}
@@ -116,12 +101,6 @@ function ChainNode({
           <TypePill key={t} type={t} size="sm" />
         ))}
       </div>
-      {!openable && (
-        <span className="mt-2 inline-flex items-center gap-1 text-[11px] text-ink-faint">
-          <Lock size={11} strokeWidth={1.75} />
-          outside Kalos
-        </span>
-      )}
     </motion.div>
   );
 }
@@ -261,11 +240,29 @@ function ChainSkeleton() {
   );
 }
 
+/** Charts are heavy to mount, so the list grows a page at a time. */
+const PAGE_SIZE = 12;
+
 export function EvolutionTab({ onSelect }: { onSelect: (p: Pokemon) => void }) {
+  const [generation, setGeneration] = useState(0);
+  const [visible, setVisible] = useState(PAGE_SIZE);
+
   const { data, loading, error, reload } = useAsync<EvolutionChain[]>(
     () => fetchEvolutionChains(),
     [],
   );
+
+  // A family belongs to the generation that introduced the Pokemon it starts
+  // from, so Pichu's line reads as Generation 2 even though Pikachu is older.
+  const chains = useMemo(() => {
+    const all = data ?? [];
+    if (generation === 0) return all;
+    return all.filter(
+      (c) => pokemonById(c.chain.id)?.generation === generation,
+    );
+  }, [data, generation]);
+
+  useEffect(() => setVisible(PAGE_SIZE), [generation]);
 
   return (
     <div>
@@ -273,9 +270,34 @@ export function EvolutionTab({ onSelect }: { onSelect: (p: Pokemon) => void }) {
         Evolution trees
       </h2>
       <p className="mt-1 max-w-[62ch] text-sm text-ink-dim">
-        Every Kalos family held locally, with the condition that triggers each
-        step. Tap any stage to open its full record.
+        Every family in the dex that evolves, with the condition that triggers
+        each step. Tap any stage to open its full record.
       </p>
+
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        {[0, ...GENERATIONS.map((g) => g.generation)].map((gen) => {
+          const active = gen === generation;
+          return (
+            <button
+              key={gen}
+              onClick={() => setGeneration(gen)}
+              aria-pressed={active}
+              className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
+                active
+                  ? "border-accent/45 bg-accent/12 text-accent"
+                  : "border-line bg-surface text-ink-dim hover:text-ink"
+              }`}
+            >
+              {gen === 0 ? "All" : `Gen ${gen}`}
+            </button>
+          );
+        })}
+        {!loading && (
+          <span className="text-xs text-ink-faint">
+            {chains.length} {chains.length === 1 ? "family" : "families"}
+          </span>
+        )}
+      </div>
 
       <div className="mt-7 grid gap-5">
         {error ? (
@@ -286,11 +308,26 @@ export function EvolutionTab({ onSelect }: { onSelect: (p: Pokemon) => void }) {
             <ChainSkeleton />
           </>
         ) : (
-          data?.map((chain) => (
-            <ChainRow key={chain.id} chain={chain} onSelect={onSelect} />
-          ))
+          chains
+            .slice(0, visible)
+            .map((chain) => (
+              <ChainRow key={chain.id} chain={chain} onSelect={onSelect} />
+            ))
         )}
       </div>
+
+      {!loading && !error && visible < chains.length && (
+        <div className="mt-8 text-center">
+          <button
+            onClick={() =>
+              setVisible((n) => Math.min(n + PAGE_SIZE, chains.length))
+            }
+            className="rounded-full border border-line bg-surface px-5 py-2 text-sm text-ink-dim transition hover:text-ink"
+          >
+            Show more ({chains.length - visible} left)
+          </button>
+        </div>
+      )}
     </div>
   );
 }

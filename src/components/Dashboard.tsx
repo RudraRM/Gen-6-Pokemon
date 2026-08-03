@@ -111,7 +111,7 @@ export function Dashboard({ onExit }: { onExit: () => void }) {
             {tab === "all" && <AllPokemonTab onSelect={handleSelect} />}
             {tab === "evolution" && <EvolutionTab onSelect={handleSelect} />}
             {tab === "types" && <TypeMatchupTab onSelect={handleSelect} />}
-            {tab === "mega" && <MegaEvolutionTab />}
+            {tab === "mega" && <MegaEvolutionTab onSelect={handleSelect} />}
           </motion.div>
         </AnimatePresence>
       </main>

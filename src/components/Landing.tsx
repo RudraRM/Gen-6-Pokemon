@@ -1,6 +1,6 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, GitBranch, ScanLine, Shield } from "lucide-react";
-import { GEN6_POKEMON } from "../api/localPokeApi";
+import { ALL_POKEMON } from "../api/localPokeApi";
 import {
   ALL_TYPES,
   STAT_LABELS,
@@ -11,7 +11,7 @@ import {
 import { HeroShowpiece } from "./HeroShowpiece";
 import { PokemonArt, TypePill } from "./primitives";
 
-const byId = (id: number) => GEN6_POKEMON.find((p) => p.id === id)!;
+const byId = (id: number) => ALL_POKEMON.find((p) => p.id === id)!;
 
 /** The cluster that floats beside the headline. */
 const SHOWCASE = [658, 700, 716, 663, 681].map(byId);
@@ -91,8 +91,8 @@ export function Landing({ onLaunch }: { onLaunch: () => void }) {
           </h1>
 
           <p className="mt-6 max-w-[46ch] text-base leading-relaxed text-ink-dim sm:text-lg">
-            Every Generation 6 record, cross-referenced by type, evolution line,
-            and base stat spread.
+            Every record from Generation 1 to Generation 6, cross-referenced by
+            type, evolution line, and base stat spread.
           </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-3">
@@ -225,7 +225,7 @@ export function Landing({ onLaunch }: { onLaunch: () => void }) {
             className="lg:row-span-2"
             icon={<Shield size={17} strokeWidth={1.75} />}
             title="Type analysis"
-            body="Pick any of the eighteen types and pull the Kalos roster that carries it, alongside its full offensive and defensive multipliers."
+            body="Pick any of the eighteen types and pull every Pokemon that carries it, alongside its full offensive and defensive multipliers."
             visual={<TypeGridVisual />}
           />
           <FeatureCell
@@ -246,7 +246,7 @@ export function Landing({ onLaunch }: { onLaunch: () => void }) {
       {/* --------------------------- closing --------------------------- */}
       <section className="relative border-t border-line px-4 py-20 text-center sm:px-8">
         <h2 className="mx-auto max-w-[18ch] text-3xl font-semibold tracking-tighter text-ink sm:text-4xl">
-          {GEN6_POKEMON.length} records. One region.
+          {ALL_POKEMON.length} records. Six generations.
         </h2>
         <p className="mx-auto mt-4 max-w-[48ch] text-base text-ink-dim">
           The dex runs entirely on local data, so it opens instantly and works

@@ -1,5 +1,7 @@
 import { memo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { Sparkles } from "lucide-react";
+import { MEGA_CAPABLE_IDS } from "../api/pokeApi";
 import type { Pokemon } from "../api/localPokeApi";
 import { TYPE_COLORS, dexNumber, titleCase } from "../lib/pokemonTypes";
 import { PokemonArt, TypePill } from "./primitives";
@@ -24,6 +26,7 @@ export const PokemonCard = memo(function PokemonCard({
   const primary = TYPE_COLORS[typeNames[0]].base;
   const secondary = TYPE_COLORS[typeNames[1] ?? typeNames[0]].base;
   const total = pokemon.stats.reduce((sum, s) => sum + s.base_stat, 0);
+  const canMegaEvolve = MEGA_CAPABLE_IDS.has(pokemon.id);
 
   return (
     <motion.button
@@ -90,10 +93,19 @@ export const PokemonCard = memo(function PokemonCard({
         </h3>
         <p className="mt-0.5 text-xs text-ink-dim">{pokemon.genus}</p>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           {typeNames.map((t) => (
             <TypePill key={t} type={t} size="sm" />
           ))}
+          {canMegaEvolve && (
+            <span
+              title="Has a Mega Evolution"
+              className="inline-flex items-center gap-1 rounded-full border border-accent/35 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent"
+            >
+              <Sparkles size={10} strokeWidth={2} aria-hidden="true" />
+              mega
+            </span>
+          )}
         </div>
       </div>
     </motion.button>
